@@ -10,4 +10,6 @@ public interface CharactersMoviesRepository extends JpaRepository<CharactersMovi
     List<CharactersMovies> findByMovieId(Long id);
 
     boolean existsByMovieIdAndCharacterId(Long idCharacter, Long idMovie);
+
+    List<CharactersMovies> findByCharacterId(Long id);
 }

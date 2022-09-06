@@ -30,4 +30,13 @@ public class MoviesMapper {
         movie.setGenreId(movieDTO.getGenreId());
         return movie;
     }
+    public MoviesDTO moviesTOmoviesDtoFull(Movies movie){
+        MoviesDTO moviesDTO = new MoviesDTO();
+        moviesDTO.setTitle(movie.getTitle());
+        moviesDTO.setUrlImage(movie.getUrlImage());
+        moviesDTO.setDateCreate(movie.getDateCreate());
+        moviesDTO.setRanking(movie.getRanking());
+        moviesDTO.setGenreId(movie.getGenreId());
+        return moviesDTO;
+    }
 }

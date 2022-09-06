@@ -1,12 +1,14 @@
 package com.challenge.disneyApp.service;
 import com.challenge.disneyApp.DTO.CharactersBasicDTO;
 import com.challenge.disneyApp.DTO.CharactersDTO;
+import com.challenge.disneyApp.DTO.CharactersFiltersDTO;
 import com.challenge.disneyApp.exception.ParamNotFound;
 import com.challenge.disneyApp.mapper.CharactersMapper;
 import com.challenge.disneyApp.models.Characters;
 import com.challenge.disneyApp.models.CharactersMovies;
 import com.challenge.disneyApp.repository.CharactersMoviesRepository;
 import com.challenge.disneyApp.repository.CharactersRepository;
+import com.challenge.disneyApp.repository.specifications.CharactersSpecifications;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,11 +25,8 @@ public class CharactersService implements CharactersServiceI {
     private CharactersMoviesRepository charactersMoviesRepository;
     @Autowired
     private MoviesService moviesService;
-    public CharactersBasicDTO findByName(String name){
-        Characters charactersResponse = charactersRepository.findByName(name);
-        CharactersBasicDTO charactersDTO = charactersMapper.characterTOcharacterDTO(charactersResponse);
-        return charactersDTO;
-    }
+    @Autowired
+    private CharactersSpecifications charactersSpecifications;
 
     public CharactersBasicDTO saveCharacters(CharactersDTO dto) {
         Characters character = charactersMapper.characterDtoTOcharacterFull(dto);
@@ -36,7 +35,7 @@ public class CharactersService implements CharactersServiceI {
         List <Long> listMovies = dto.getListMovies();
 
         if(listMovies.size()!=0){
-            //verifico si la pelicula exista
+            //verifico si las peliculas existen
             if(!existMovieList(listMovies)){
                 throw new ParamNotFound("the movie does not exist");
             }
@@ -57,14 +56,11 @@ public class CharactersService implements CharactersServiceI {
         return charactersDTO;
     }
 
-    public List<CharactersBasicDTO> findByAge(Integer age) {
-        List<Characters> listCharacters = charactersRepository.findByAge(age);
-        List<CharactersBasicDTO> listCharactersDTO = charactersMapper.listCharactersTOlistCharactersDTO(listCharacters);
-        return listCharactersDTO;
-    }
-
     public void deleteById(Long id) {
-        this.charactersRepository.deleteById(id);
+        if (!idCharacterExist(id)) {
+            throw new ParamNotFound("the character does not exist");
+        }
+        charactersRepository.deleteById(id);
     }
 
     public List<CharactersBasicDTO> findAll() {
@@ -76,17 +72,6 @@ public class CharactersService implements CharactersServiceI {
         Characters characters = charactersRepository.findByCharacterId(id);
         CharactersBasicDTO charactersBasicDTO = charactersMapper.characterTOcharacterDTO(characters);
         return charactersBasicDTO;
-    }
-
-    public List<CharactersBasicDTO> findByMovie(Long idMovie) {
-       CharactersMoviesService charactersMoviesService = new CharactersMoviesService();
-       List<CharactersMovies> ListCharactersMovies = charactersMoviesService.findByMovieId(idMovie);
-       List<CharactersBasicDTO> listCharacters = new ArrayList<>();
-       ListCharactersMovies.forEach((elem) -> {
-            CharactersBasicDTO newCharacterDTO = findById(elem.getCharacterId());
-            listCharacters.add(newCharacterDTO);
-        });
-       return listCharacters;
     }
     public boolean idCharacterExist(Long id){
         return charactersRepository.existsByCharacterId(id);
@@ -104,7 +89,7 @@ public class CharactersService implements CharactersServiceI {
     public boolean existRegCharacterMovie(Long idCharacter, List<Long> listMovies){
         boolean exist = false;
         for (int i=0;i< listMovies.size();i++){
-            if(charactersMoviesRepository.existsByMovieIdAndCharacterId(idCharacter, listMovies.get(i))){
+            if(charactersMoviesRepository.existsByMovieIdAndCharacterId(listMovies.get(i),idCharacter)){
                 return true;
             }
         }
@@ -124,6 +109,31 @@ public class CharactersService implements CharactersServiceI {
         characters.setHistory(dto.getHistory());
         charactersRepository.save(characters);
         CharactersDTO charactersDTO = charactersMapper.characterTOcharacterDToFull(characters);
+        return charactersDTO;
+    }
+
+    public List<CharactersBasicDTO> getByFilters(String name, Integer age, Long idMovie) {
+        CharactersFiltersDTO filterCharacters = new CharactersFiltersDTO();
+        filterCharacters.setAge(age);
+        filterCharacters.setName(name);
+        filterCharacters.setIdMovie(idMovie);
+        List<Characters> characters = charactersRepository.findAll(charactersSpecifications.getFilters(filterCharacters));
+        List<CharactersBasicDTO> listDTO = charactersMapper.listCharactersTOlistCharactersDTO(characters);
+        return  listDTO;
+    }
+
+    public CharactersDTO findByCharacterId(Long id) {
+        if((!idCharacterExist(id))){
+            throw new ParamNotFound("the movie does not exist");
+        }
+        Characters character = charactersRepository.findByCharacterId(id);
+        CharactersDTO charactersDTO = charactersMapper.characterTOcharacterDToFull(character);
+        List<CharactersMovies> charactersMoviesList= charactersMoviesRepository.findByCharacterId(id);
+        List<Long> listMovies = new ArrayList<>();
+        charactersMoviesList.forEach((elem) -> {
+            listMovies.add(elem.getMovieId());
+        });
+        charactersDTO.setListMovies(listMovies);
         return charactersDTO;
     }
 }
